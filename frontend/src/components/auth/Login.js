@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, LogIn, Building, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock, User, Building, Hash } from 'lucide-react';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -9,57 +8,24 @@ const Login = () => {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { login, register, isLoading, error, clearError } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/';
-
-  // Registration form data
-  const [regData, setRegData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    branch: '',
-    USN: '',
-    role: 'user'
-  });
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (isLogin) {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    } else {
-      setRegData(prev => ({ ...prev, [name]: value }));
-    }
-    // Clear error when user starts typing
-    if (error) clearError();
-    // Clear field-specific error
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+  const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (isLogin) {
-      if (!formData.email) newErrors.email = 'Email is required';
-      if (!formData.password) newErrors.password = 'Password is required';
-    } else {
-      if (!regData.name) newErrors.name = 'Name is required';
-      if (!regData.email) newErrors.email = 'Email is required';
-      if (!regData.password) newErrors.password = 'Password is required';
-      if (regData.password !== regData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-      if (regData.password.length < 6) {
-        newErrors.password = 'Password must be at least 6 characters';
-      }
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     setErrors(newErrors);
@@ -71,233 +37,160 @@ const Login = () => {
     
     if (!validateForm()) return;
 
+    setIsLoading(true);
     try {
-      if (isLogin) {
-        await login(formData.email, formData.password);
-      } else {
-        const { confirmPassword, ...userData } = regData;
-        await register(userData);
-      }
+      await login(formData.email, formData.password);
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setErrors({});
-    clearError();
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+            <Building className="h-8 w-8 text-blue-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+           JSSATE Institute Portal 
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Join our educational community'}
+          <p className="text-gray-600">
+            Sign in to access your account
           </p>
         </div>
 
-        {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {!isLogin && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Full Name
-                </label>
-                <div className="mt-1 relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={regData.name}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full px-10 py-3 border ${
-                      errors.name ? 'border-red-300' : 'border-gray-300'
-                    } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-              </div>
-            )}
-
+        {/* Login Form */}
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
-              <div className="mt-1 relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  value={isLogin ? formData.email : regData.email}
-                  onChange={handleInputChange}
-                  className={`appearance-none relative block w-full px-10 py-3 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
-                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your email address"
                 />
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
-            {!isLogin && (
-              <>
-                <div>
-                  <label htmlFor="branch" className="block text-sm font-medium text-gray-700">
-                    Branch (Optional)
-                  </label>
-                  <div className="mt-1 relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      id="branch"
-                      name="branch"
-                      type="text"
-                      value={regData.branch}
-                      onChange={handleInputChange}
-                      className="appearance-none relative block w-full px-10 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., Computer Science"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="USN" className="block text-sm font-medium text-gray-700">
-                    USN (Optional)
-                  </label>
-                  <div className="mt-1 relative">
-                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      id="USN"
-                      name="USN"
-                      type="text"
-                      value={regData.USN}
-                      onChange={handleInputChange}
-                      className="appearance-none relative block w-full px-10 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., 1MS20CS001"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                    Role
-                  </label>
-                  <select
-                    id="role"
-                    name="role"
-                    value={regData.role}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="user">Student/User</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </>
-            )}
-
+            {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <div className="mt-1 relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                  autoComplete="current-password"
                   required
-                  value={isLogin ? formData.password : regData.password}
-                  onChange={handleInputChange}
-                  className={`appearance-none relative block w-full px-10 py-3 pr-10 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`block w-full pl-10 pr-12 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.password ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
                 </button>
               </div>
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
             </div>
 
-            {!isLogin && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password
-                </label>
-                <div className="mt-1 relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={regData.confirmPassword}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full px-10 py-3 pr-10 border ${
-                      errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                    } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
-                    placeholder="Confirm your password"
-                  />
-                </div>
-                {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-              </div>
-            )}
-          </div>
-
-          {/* Error message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            ) : (
-              isLogin ? 'Sign In' : 'Create Account'
-            )}
-          </button>
-
-          {/* Toggle mode */}
-          <div className="text-center">
+            {/* Submit Button */}
             <button
-              type="button"
-              onClick={toggleMode}
-              className="text-primary-600 hover:text-primary-500 text-sm font-medium transition-colors duration-200"
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLogin 
-                ? "Don't have an account? Sign up" 
-                : "Already have an account? Sign in"
-              }
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Sign In
+                </>
+              )}
             </button>
+          </form>
+
+          {/* Admin Notice */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <Lock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">Need an account?</p>
+                <p className="mt-1">
+                  Contact your institute administrator to get your account credentials. 
+                  User accounts are managed centrally for security and compliance.
+                </p>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-sm text-gray-500">
+          <p>&copy; 2025 JSSATE Institute Portal. All rights reserved.</p>
+          <p className="mt-1">Secure access for authorized users only</p>
+        </div>
       </div>
     </div>
   );

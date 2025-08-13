@@ -21,13 +21,18 @@ import {
   TrendingUp,
   UserPlus,
   Shield,
-  Upload
+  Upload,
+  MessageSquare,
+  Search
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ContentList from '../content/ContentList';
 import OpportunityList from '../opportunities/OpportunityList';
 import ContentUpload from '../content/ContentUpload';
 import OpportunityForm from '../opportunities/OpportunityForm';
+import AdminComplaintList from '../complaints/AdminComplaintList';
+import UserManagement from '../admin/UserManagement';
+import AdminOverview from '../admin/AdminOverview';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
@@ -36,6 +41,7 @@ const AdminDashboard = () => {
   const [content, setContent] = useState([]);
   const [opportunities, setOpportunities] = useState([]);
   const [users, setUsers] = useState([]);
+  const [complaints, setComplaints] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showContentUploadForm, setShowContentUploadForm] = useState(false);
   const [showOpportunityForm, setShowOpportunityForm] = useState(false);
@@ -138,7 +144,7 @@ const AdminDashboard = () => {
           name: 'John Doe',
           email: 'john.doe@example.com',
           role: 'user',
-          branch: 'Computer Science',
+          branch: 'computer-science',
           USN: 'CS001',
           isActive: true,
           lastLogin: new Date(Date.now() - 3600000),
@@ -149,7 +155,7 @@ const AdminDashboard = () => {
           name: 'Jane Smith',
           email: 'jane.smith@example.com',
           role: 'user',
-          branch: 'Electrical Engineering',
+          branch: 'electrical-engineering',
           USN: 'EE001',
           isActive: true,
           lastLogin: new Date(Date.now() - 7200000),
@@ -160,11 +166,54 @@ const AdminDashboard = () => {
           name: 'Admin User',
           email: 'admin@example.com',
           role: 'admin',
-          branch: 'Administration',
+          branch: 'administration',
           USN: 'ADMIN001',
           isActive: true,
           lastLogin: new Date(Date.now() - 1800000),
           createdAt: new Date(Date.now() - 7776000000)
+        }
+      ]);
+
+      setComplaints([
+        {
+          _id: '1',
+          subject: 'Network connectivity issues in Lab 3',
+          message: 'Students are experiencing frequent disconnections while working on assignments. This is affecting our productivity.',
+          category: 'technical',
+          priority: 'high',
+          status: 'open',
+          submittedBy: { name: 'John Doe', _id: '1' },
+          createdAt: new Date(Date.now() - 86400000),
+          isUrgent: false,
+          isAnonymous: false
+        },
+        {
+          _id: '2',
+          subject: 'Request for additional study materials',
+          message: 'We need more reference books and digital resources for the Machine Learning course.',
+          category: 'academic',
+          priority: 'medium',
+          status: 'assigned',
+          submittedBy: { name: 'Jane Smith', _id: '2' },
+          assignedTo: { name: 'Admin User', _id: '3' },
+          assignedAt: new Date(Date.now() - 43200000),
+          createdAt: new Date(Date.now() - 172800000),
+          isUrgent: false,
+          isAnonymous: false
+        },
+        {
+          _id: '3',
+          subject: 'Air conditioning not working properly',
+          message: 'The temperature in the library is too high, making it uncomfortable for studying.',
+          category: 'facility',
+          priority: 'urgent',
+          status: 'inProgress',
+          submittedBy: { name: 'Bob Wilson', _id: '4' },
+          assignedTo: { name: 'Admin User', _id: '3' },
+          assignedAt: new Date(Date.now() - 86400000),
+          createdAt: new Date(Date.now() - 259200000),
+          isUrgent: true,
+          isAnonymous: false
         }
       ]);
       setIsLoading(false);
@@ -257,140 +306,75 @@ const AdminDashboard = () => {
     ));
   };
 
+  const handleComplaintRefresh = async () => {
+    toast.success('Complaints refreshed!');
+  };
+
+  const handleComplaintAssign = async (complaintId, userId) => {
+    console.log('Assigning complaint:', complaintId, 'to user:', userId);
+    const user = users.find(u => u._id === userId);
+    if (user) {
+      setComplaints(prev => prev.map(item => 
+        item._id === complaintId 
+          ? { ...item, status: 'assigned', assignedTo: user, assignedAt: new Date() }
+          : item
+      ));
+      toast.success('Complaint assigned successfully!');
+    }
+  };
+
+  const handleComplaintStatusUpdate = async (complaintId, status) => {
+    console.log('Updating complaint status:', complaintId, 'to:', status);
+    setComplaints(prev => prev.map(item => 
+      item._id === complaintId ? { ...item, status } : item
+    ));
+    toast.success('Complaint status updated successfully!');
+  };
+
+  const handleComplaintDelete = async (complaint) => {
+    if (window.confirm(`Are you sure you want to delete this complaint?`)) {
+      console.log('Deleting complaint:', complaint);
+      setComplaints(prev => prev.filter(item => item._id !== complaint._id));
+      toast.success('Complaint deleted successfully!');
+    }
+  };
+
+  const handleUserDelete = async (user) => {
+    if (window.confirm(`Are you sure you want to delete user "${user.name}"?`)) {
+      console.log('Deleting user:', user);
+      setUsers(prev => prev.filter(item => item._id !== user._id));
+      toast.success('User deleted successfully!');
+    }
+  };
+
+  const handleUserRoleUpdate = async (userId, newRole) => {
+    console.log('Updating user role:', userId, 'to:', newRole);
+    setUsers(prev => prev.map(item => 
+      item._id === userId ? { ...item, role: newRole } : item
+    ));
+    toast.success('User role updated successfully!');
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="space-y-6">
-            {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg p-6 text-white">
-              <h1 className="text-2xl font-bold mb-2">Welcome, Admin {user?.name}!</h1>
-              <p className="text-purple-100">Manage your educational portal and monitor system activities.</p>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <div className="flex items-center">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <Users className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Users</p>
-                    <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <div className="flex items-center">
-                  <div className="p-3 bg-yellow-100 rounded-lg">
-                    <AlertTriangle className="w-6 h-6 text-yellow-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Pending Content</p>
-                    <p className="text-2xl font-bold text-gray-900">{content.filter(c => c.status === 'pending').length}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <div className="flex items-center">
-                  <div className="p-3 bg-green-100 rounded-lg">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Approved Content</p>
-                    <p className="text-2xl font-bold text-gray-900">{content.filter(c => c.status === 'approved').length}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <div className="flex items-center">
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <Briefcase className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Active Opportunities</p>
-                    <p className="text-2xl font-bold text-gray-900">{opportunities.filter(o => o.isActive).length}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* System Status */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">System Status</h2>
-                <p className="text-sm text-gray-600">Current system health and performance</p>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="font-medium text-gray-900 mb-1">Database</h3>
-                    <p className="text-sm text-green-600">Healthy</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="font-medium text-gray-900 mb-1">File Storage</h3>
-                    <p className="text-sm text-green-600">Operational</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="font-medium text-gray-900 mb-1">API Services</h3>
-                    <p className="text-sm text-green-600">Running</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-                <p className="text-sm text-gray-600">Latest system activities and user actions</p>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center py-3 border-b border-gray-100 last:border-b-0">
-                    <div className="p-2 bg-blue-100 rounded-lg mr-4">
-                      <Upload className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">New content uploaded: "Machine Learning Basics"</p>
-                      <p className="text-xs text-gray-500">2 hours ago • Pending approval</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center py-3 border-b border-gray-100 last:border-b-0">
-                    <div className="p-2 bg-green-100 rounded-lg mr-4">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">Content approved: "Data Structures Visualization"</p>
-                      <p className="text-xs text-gray-500">1 day ago • By Admin</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center py-3 border-b border-gray-100 last:border-b-0">
-                    <div className="p-2 bg-purple-100 rounded-lg mr-4">
-                      <UserPlus className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">New user registered: "Bob Wilson"</p>
-                      <p className="text-xs text-gray-500">2 days ago • Computer Science</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <AdminOverview
+            stats={{
+              users: { current: users.length, previous: users.length - 2 },
+              content: { current: content.length, previous: content.length - 1 },
+              opportunities: { current: opportunities.length, previous: opportunities.length - 1 },
+              complaints: { current: complaints.length, previous: complaints.length - 1 }
+            }}
+            recentContent={content.slice(0, 5)}
+            recentComplaints={complaints.slice(0, 5)}
+            recentOpportunities={opportunities.slice(0, 5)}
+            recentUsers={users.slice(0, 5)}
+            onViewContent={(content) => console.log('Viewing content:', content)}
+            onViewComplaint={(complaint) => console.log('Viewing complaint:', complaint)}
+            onViewOpportunity={(opportunity) => console.log('Viewing opportunity:', opportunity)}
+            onViewUser={(user) => console.log('Viewing user:', user)}
+          />
         );
 
       case 'content':
@@ -447,101 +431,26 @@ const AdminDashboard = () => {
 
       case 'users':
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-              <button
-                onClick={() => console.log('Add new user')}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add User
-              </button>
-            </div>
+          <UserManagement
+            users={users}
+            onRefresh={handleContentRefresh}
+            onEdit={(user) => console.log('Editing user:', user)}
+            onDelete={handleUserDelete}
+            onToggleStatus={handleUserToggleStatus}
+            onUpdateRole={handleUserRoleUpdate}
+            currentUser={user}
+          />
+        );
 
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr key={user._id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-700">
-                                {user.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                              <div className="text-sm text-gray-500">{user.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.role === 'admin' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {user.role === 'admin' ? (
-                              <>
-                                <Shield className="w-3 h-3 mr-1" />
-                                Admin
-                              </>
-                            ) : (
-                              <>
-                                <User className="w-3 h-3 mr-1" />
-                                User
-                              </>
-                            )}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.branch}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.isActive 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {user.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleUserToggleStatus(user)}
-                              className={`px-3 py-1 rounded text-xs font-medium ${
-                                user.isActive
-                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-                              }`}
-                            >
-                              {user.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button className="text-blue-600 hover:text-blue-900 text-xs font-medium">
-                              Edit
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      case 'search':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Search</h2>
+            <p className="text-gray-600">Use the advanced search to find content, opportunities, and users across the platform.</p>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-purple-800 text-sm">
+                🔍 <strong>Admin Search:</strong> Navigate to the dedicated search page for comprehensive search capabilities with advanced filters, user management, and analytics.
+              </p>
             </div>
           </div>
         );
@@ -563,6 +472,19 @@ const AdminDashboard = () => {
               onCancel={() => setActiveTab('content')}
             />
           </div>
+        );
+
+      case 'complaints':
+        return (
+          <AdminComplaintList
+            complaints={complaints}
+            onRefresh={handleComplaintRefresh}
+            onEdit={(complaint) => console.log('Viewing complaint:', complaint)}
+            onDelete={handleComplaintDelete}
+            onAssign={handleComplaintAssign}
+            onStatusUpdate={handleComplaintStatusUpdate}
+            users={users}
+          />
         );
 
       case 'create-opportunity':
@@ -597,7 +519,9 @@ const AdminDashboard = () => {
     { id: 'content', label: 'Content Library', icon: BookOpen },
     { id: 'moderation', label: 'Content Moderation', icon: Shield },
     { id: 'opportunities', label: 'Opportunities', icon: Briefcase },
+    { id: 'complaints', label: 'Complaints', icon: MessageSquare },
     { id: 'users', label: 'User Management', icon: Users },
+    { id: 'search', label: 'Search', icon: Search },
     { id: 'upload', label: 'Upload Content', icon: Plus },
     { id: 'create-opportunity', label: 'Create Opportunity', icon: Plus }
   ];

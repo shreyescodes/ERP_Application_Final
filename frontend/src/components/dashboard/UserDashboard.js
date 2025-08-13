@@ -22,7 +22,8 @@ import {
   RefreshCw,
   Filter,
   Grid,
-  List
+  List,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ContentList from '../content/ContentList';
@@ -48,6 +49,7 @@ const UserDashboard = () => {
     { id: 'upload', label: 'Upload Content', icon: Upload, color: 'text-purple-600' },
     { id: 'opportunities', label: 'Opportunities', icon: Briefcase, color: 'text-orange-600' },
     { id: 'complaints', label: 'My Complaints', icon: MessageSquare, color: 'text-red-600' },
+    { id: 'search', label: 'Search', icon: Search, color: 'text-indigo-600' },
     { id: 'profile', label: 'Profile', icon: User, color: 'text-gray-600' }
   ];
 
@@ -415,6 +417,19 @@ const UserDashboard = () => {
             canDelete={false}
             showUserComplaints={true}
           />
+        );
+
+      case 'search':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Search</h2>
+            <p className="text-gray-600">Use the advanced search to find content, opportunities, and users across the platform.</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-blue-800 text-sm">
+                💡 <strong>Tip:</strong> Navigate to the dedicated search page for the full search experience with advanced filters and suggestions.
+              </p>
+            </div>
+          </div>
         );
 
       case 'profile':

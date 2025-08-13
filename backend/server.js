@@ -15,6 +15,7 @@ const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
 const opportunityRoutes = require('./routes/opportunities');
 const complaintRoutes = require('./routes/complaints');
+const searchRoutes = require('./routes/search');
 // const complaintRoutes = require('./routes/complaints');
 
 // Security middleware
@@ -56,6 +57,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/opportunities', opportunityRoutes);
 app.use('/api/complaints', complaintRoutes);
+app.use('/api/search', searchRoutes);
 // app.use('/api/complaints', complaintRoutes);
 
 // 404 handler
