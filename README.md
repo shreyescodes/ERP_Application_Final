@@ -74,8 +74,8 @@ ERP-CMS-Final/
 
 1. **Clone and Install Dependencies**
    ```bash
-   git clone <repository-url>
-   cd ERP-CMS-Final
+   git clone git@github.com:shreyescodes/ERP_Application_Final.git
+   cd ERP_Application_Final
    npm run install-all
    ```
 
