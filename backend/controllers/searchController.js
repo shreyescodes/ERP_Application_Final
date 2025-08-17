@@ -100,10 +100,10 @@ const searchController = {
         }
         
         if (role) userQuery.role = role;
-        if (branch) userQuery.branch = branch;
+        if (branch) userQuery.branch = { $regex: branch, $options: 'i' };
 
         const userResults = await User.find(userQuery)
-          .select('-password')
+          .select('name email USN branch role isActive lastLogin')
           .sort(sort)
           .skip(skip)
           .limit(parseInt(limit));
@@ -115,13 +115,7 @@ const searchController = {
       }
 
       // Calculate pagination
-      const maxTotal = Math.max(
-        results.content.length,
-        results.opportunities.length,
-        results.users.length
-      );
-      
-      results.pagination.totalPages = Math.ceil(maxTotal / limit);
+      results.pagination.totalPages = Math.ceil(results.totalResults / limit);
 
       res.json({
         success: true,
@@ -130,7 +124,7 @@ const searchController = {
       });
 
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Global search error:', error);
       res.status(500).json({
         success: false,
         message: 'Search failed',
@@ -139,7 +133,7 @@ const searchController = {
     }
   },
 
-  // Advanced content search with filters
+  // Search content specifically
   async searchContent(req, res) {
     try {
       const {
@@ -147,12 +141,6 @@ const searchController = {
         category,
         fileType,
         status = 'approved',
-        uploadedBy,
-        tags,
-        dateFrom,
-        dateTo,
-        minSize,
-        maxSize,
         page = 1,
         limit = 20,
         sortBy = 'createdAt',
@@ -162,41 +150,20 @@ const searchController = {
       const skip = (page - 1) * limit;
       const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
-      // Build search query
-      let searchQuery = {};
-
-      // Text search
+      // Build query
+      const searchQuery = { status };
+      
       if (query) {
         searchQuery.$or = [
           { title: { $regex: query, $options: 'i' } },
           { description: { $regex: query, $options: 'i' } },
-          { tags: { $in: [new RegExp(query, 'i')] } }
+          { tags: { $in: [new RegExp(query, 'i')] } },
+          { category: { $regex: query, $options: 'i' } }
         ];
       }
-
-      // Filters
+      
       if (category) searchQuery.category = category;
       if (fileType) searchQuery.fileType = { $regex: fileType, $options: 'i' };
-      if (status) searchQuery.status = status;
-      if (uploadedBy) searchQuery.uploadedBy = uploadedBy;
-      if (tags) {
-        const tagArray = tags.split(',').map(tag => tag.trim());
-        searchQuery.tags = { $in: tagArray };
-      }
-
-      // Date range
-      if (dateFrom || dateTo) {
-        searchQuery.createdAt = {};
-        if (dateFrom) searchQuery.createdAt.$gte = new Date(dateFrom);
-        if (dateTo) searchQuery.createdAt.$lte = new Date(dateTo);
-      }
-
-      // File size range
-      if (minSize || maxSize) {
-        searchQuery.fileSize = {};
-        if (minSize) searchQuery.fileSize.$gte = parseInt(minSize);
-        if (maxSize) searchQuery.fileSize.$lte = parseInt(maxSize);
-      }
 
       // Execute search
       const content = await Content.find(searchQuery)
@@ -207,25 +174,15 @@ const searchController = {
 
       const total = await Content.countDocuments(searchQuery);
 
-      // Get unique values for filters
-      const categories = await Content.distinct('category');
-      const fileTypes = await Content.distinct('fileType');
-      const allTags = await Content.distinct('tags');
-
       res.json({
         success: true,
         data: {
           content,
-          total,
           pagination: {
             page: parseInt(page),
             limit: parseInt(limit),
+            total,
             totalPages: Math.ceil(total / limit)
-          },
-          filters: {
-            categories,
-            fileTypes,
-            tags: allTags
           }
         },
         message: 'Content search completed successfully'
@@ -241,7 +198,7 @@ const searchController = {
     }
   },
 
-  // Advanced opportunity search
+  // Search opportunities specifically
   async searchOpportunities(req, res) {
     try {
       const {
@@ -249,15 +206,6 @@ const searchController = {
         category,
         type,
         location,
-        company,
-        minSalary,
-        maxSalary,
-        duration,
-        skills,
-        isActive = true,
-        isFeatured,
-        dateFrom,
-        dateTo,
         page = 1,
         limit = 20,
         sortBy = 'createdAt',
@@ -267,50 +215,21 @@ const searchController = {
       const skip = (page - 1) * limit;
       const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
-      // Build search query
-      let searchQuery = {};
-
-      // Text search
+      // Build query
+      const searchQuery = { isActive: true };
+      
       if (query) {
         searchQuery.$or = [
           { title: { $regex: query, $options: 'i' } },
           { description: { $regex: query, $options: 'i' } },
           { company: { $regex: query, $options: 'i' } },
-          { requirements: { $regex: query, $options: 'i' } },
-          { skills: { $in: [new RegExp(query, 'i')] } }
+          { tags: { $in: [new RegExp(query, 'i')] } }
         ];
       }
-
-      // Filters
+      
       if (category) searchQuery.category = category;
       if (type) searchQuery.type = type;
       if (location) searchQuery.location = { $regex: location, $options: 'i' };
-      if (company) searchQuery.company = { $regex: company, $options: 'i' };
-      if (isActive !== undefined) searchQuery.isActive = isActive === 'true';
-      if (isFeatured !== undefined) searchQuery.isFeatured = isFeatured === 'true';
-
-      // Salary range
-      if (minSalary || maxSalary) {
-        searchQuery.salary = {};
-        if (minSalary) searchQuery.salary.$gte = parseInt(minSalary);
-        if (maxSalary) searchQuery.salary.$lte = parseInt(maxSalary);
-      }
-
-      // Duration filter
-      if (duration) searchQuery.duration = duration;
-
-      // Skills filter
-      if (skills) {
-        const skillArray = skills.split(',').map(skill => skill.trim());
-        searchQuery.skills = { $in: skillArray };
-      }
-
-      // Date range
-      if (dateFrom || dateTo) {
-        searchQuery.createdAt = {};
-        if (dateFrom) searchQuery.createdAt.$gte = new Date(dateFrom);
-        if (dateTo) searchQuery.createdAt.$lte = new Date(dateTo);
-      }
 
       // Execute search
       const opportunities = await Opportunity.find(searchQuery)
@@ -321,29 +240,15 @@ const searchController = {
 
       const total = await Opportunity.countDocuments(searchQuery);
 
-      // Get unique values for filters
-      const categories = await Opportunity.distinct('category');
-      const types = await Opportunity.distinct('type');
-      const locations = await Opportunity.distinct('location');
-      const companies = await Opportunity.distinct('company');
-      const allSkills = await Opportunity.distinct('skills');
-
       res.json({
         success: true,
         data: {
           opportunities,
-          total,
           pagination: {
             page: parseInt(page),
             limit: parseInt(limit),
+            total,
             totalPages: Math.ceil(total / limit)
-          },
-          filters: {
-            categories,
-            types,
-            locations,
-            companies,
-            skills: allSkills
           }
         },
         message: 'Opportunity search completed successfully'
@@ -359,20 +264,22 @@ const searchController = {
     }
   },
 
-  // Get search suggestions/autocomplete
+  // Get search suggestions (autocomplete)
   async getSearchSuggestions(req, res) {
     try {
       const { query = '', type = 'all' } = req.query;
-
+      
       if (!query || query.length < 2) {
         return res.json({
           success: true,
-          data: { suggestions: [] }
+          data: { suggestions: [] },
+          message: 'Query too short for suggestions'
         });
       }
 
       let suggestions = [];
 
+      // Get content suggestions
       if (type === 'all' || type === 'content') {
         const contentSuggestions = await Content.aggregate([
           { $match: { status: 'approved' } },
@@ -394,6 +301,7 @@ const searchController = {
         })));
       }
 
+      // Get opportunity suggestions
       if (type === 'all' || type === 'opportunities') {
         const opportunitySuggestions = await Opportunity.aggregate([
           { $match: { isActive: true } },
@@ -408,14 +316,15 @@ const searchController = {
           },
           { $limit: 5 },
           { $project: { title: 1, company: 1, _id: 1 } }
-        });
+        ]);
         suggestions.push(...opportunitySuggestions.map(item => ({
           ...item,
           type: 'opportunity'
         })));
       }
 
-      if (type === 'all' || type === 'users') {
+      // Get user suggestions (admin only)
+      if ((type === 'all' || type === 'users') && req.user?.role === 'admin') {
         const userSuggestions = await User.aggregate([
           { $match: { isActive: true } },
           {
